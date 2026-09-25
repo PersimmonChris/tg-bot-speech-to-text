@@ -17,6 +17,7 @@ from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 import requests
 from dotenv import load_dotenv
 from telegram import Update, constants
+from telegram.error import NetworkError
 from telegram.ext import (
     Application,
     ContextTypes,
@@ -36,6 +37,9 @@ DEFAULT_PROMPT = (
 TELEGRAM_MAX_MESSAGE_LENGTH = 4096
 BATCH_WINDOW_SECONDS = 0.8
 DEFAULT_DISPLAY_TIMEZONE = "Europe/Rome"
+TELEGRAM_FILE_READ_TIMEOUT = 30
+TELEGRAM_DOWNLOAD_READ_TIMEOUT = 120
+TELEGRAM_FILE_ATTEMPTS = 3
 
 FORMAT_ERROR_HINTS = (
     "unsupported audio format",
@@ -513,7 +517,6 @@ async def _process_audio_message(
     source_timestamp: float,
 ) -> None:
     bot = context.bot
-    tg_file = await bot.get_file(file_id)
 
     prompt = DEFAULT_PROMPT
 
@@ -521,7 +524,25 @@ async def _process_audio_message(
         original_path = os.path.join(tmp_dir, f"source{extension}")
 
         download_start = time.perf_counter()
-        await tg_file.download_to_drive(custom_path=original_path)
+        for attempt in range(1, TELEGRAM_FILE_ATTEMPTS + 1):
+            try:
+                tg_file = await bot.get_file(file_id, read_timeout=TELEGRAM_FILE_READ_TIMEOUT)
+                await tg_file.download_to_drive(
+                    custom_path=original_path,
+                    read_timeout=TELEGRAM_DOWNLOAD_READ_TIMEOUT,
+                )
+                break
+            except NetworkError:
+                if attempt == TELEGRAM_FILE_ATTEMPTS:
+                    raise
+                logger.warning(
+                    "Telegram file retrieval failed for update %s (attempt %d/%d); retrying.",
+                    message.message_id,
+                    attempt,
+                    TELEGRAM_FILE_ATTEMPTS,
+                    exc_info=True,
+                )
+                await asyncio.sleep(attempt)
         download_duration = time.perf_counter() - download_start
         logger.debug(
             "Downloaded to %s (%d bytes) in %.2fs",
@@ -878,6 +899,7 @@ def main() -> None:
     application = (
         Application.builder()
         .token(telegram_token)
+        .read_timeout(TELEGRAM_FILE_READ_TIMEOUT)
         .post_init(post_init)
         .post_shutdown(post_shutdown)
         .build()
