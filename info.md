@@ -1,4 +1,4 @@
-# Telegram speech-to-text bot - quick start
+# tg-bot-speech-to-text - quick start
 
 Follow these steps to get the bot running even if you have never built a Telegram bot before.
 
@@ -17,7 +17,8 @@ Follow these steps to get the bot running even if you have never built a Telegra
 - Duplicate the sample file: `cp .env.example .env`.
 - Open `.env` in a text editor and fill in:
   - `AI_MODEL_API_KEY` - the Gemini key you just created.
-  - `AI_MODEL` - keep the default `gemini-1.5-flash` unless you have access to another audio-capable Gemini model.
+  - `AI_MODEL` - production currently uses `gemini-3.5-flash-lite` (verified 2026-09-29).
+  - `AI_MODEL_FALLBACK` - production fallback is `gemini-3.1-flash-lite`.
   - `TELEGRAM_BOT_TOKEN` - the token from BotFather.
   - `DEBUG` - set to `true` if you want verbose logging while debugging.
 
@@ -52,3 +53,12 @@ Follow these steps to get the bot running even if you have never built a Telegra
 - **Unauthorized/401 errors** - double-check the Gemini API key and confirm it has access to the chosen model.
 
 You are ready to transcribe audios directly in Telegram!
+
+## Repository and deployment
+
+- GitHub: https://github.com/PersimmonChris/tg-bot-speech-to-text
+- Main local checkout: `/Users/christian/Developer/tg-bot-speech-to-text`.
+- Coolify app: `tg-bot-speech-to-text`, UUID `oduhuejw76pwbypk8y3wp10s`, branch `main`, Nixpacks.
+- Edit locally, commit, and push to GitHub. Coolify builds from GitHub when a deployment is triggered; local edits alone do not change production. Auto-deploy is enabled in Coolify, but a successful deployment must still be verified after each push.
+- The running container remains independent of the Mac checkout.
+- A second, older checkout exists at `/Users/christian/Developer/telegram-bot-speech-to-text-course`; its remote points to the same renamed repository. Use the main checkout above for current work.
